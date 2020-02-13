@@ -1620,13 +1620,19 @@ namespace Dia2Lib
             // This is the value it was for msdia120 and before 
             // var diaSourceClassGuid = new Guid("{3BFCEA48-620F-4B6B-81F7-B9AF75454C7D}");
 
-            // This is the value for msdia140.  
-            var diaSourceClassGuid = new Guid("{e6756135-1e65-4d17-8576-610761398c3c}");
-            var comClassFactory = (IClassFactory)DllGetClassObject(diaSourceClassGuid, typeof(IClassFactory).GetTypeInfo().GUID);
+            IClassFactory comClassFactory;
 
-            object comObject = null;
+            // This is the value for msdia140.
+            var diaSourceClassGuid = new Guid("{e6756135-1e65-4d17-8576-610761398c3c}");
+            var classGuid = typeof(IClassFactory).GetTypeInfo().GUID;
+            unsafe
+            {
+                DllGetClassObject(&diaSourceClassGuid, &classGuid, out var outValue);
+                comClassFactory = (IClassFactory)outValue;
+            }
+
             Guid iDataDataSourceGuid = typeof(IDiaDataSource3).GetTypeInfo().GUID;
-            comClassFactory.CreateInstance(null, ref iDataDataSourceGuid, out comObject);
+            comClassFactory.CreateInstance(null, ref iDataDataSourceGuid, out var comObject);
             return (comObject as IDiaDataSource3);
         }
         #region private
@@ -1641,11 +1647,19 @@ namespace Dia2Lib
         }
 
         // Methods
-        [return: MarshalAs(UnmanagedType.Interface)]
+        /*[return: MarshalAs(UnmanagedType.Interface)]
         [DllImport("msdia140.dll", CharSet = CharSet.Unicode, ExactSpelling = true, PreserveSig = false)]
         private static extern object DllGetClassObject(
             [In, MarshalAs(UnmanagedType.LPStruct)] Guid rclsid,
             [In, MarshalAs(UnmanagedType.LPStruct)] Guid riid);
+            */
+        [DllImport("msdia140.dll", CharSet = CharSet.Unicode, ExactSpelling = true, PreserveSig = false, CallingConvention = CallingConvention.StdCall, ThrowOnUnmappableChar = true)]
+        private unsafe static extern uint DllGetClassObject(
+            Guid* rclsid,
+            Guid* riid,
+            [MarshalAs(UnmanagedType.IUnknown, IidParameterIndex=1)]
+            out object ppv
+        );
 
         /// <summary>
         /// Used to ensure the native library is loaded at least once prior to trying to use it. No protection is
