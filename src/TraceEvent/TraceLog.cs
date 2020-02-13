@@ -8286,9 +8286,16 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
                                 symPath = symPath.LocalOnly();
                             }
 
+                            if (!string.IsNullOrEmpty(options.AdditionalSymbolPath))
+                            {
+                                symPath.Insert(options.AdditionalSymbolPath);
+                            }
+
                             var path = symPath.ToString();
                             options.ConversionLog.WriteLine("_NT_SYMBOL_PATH={0}", path);
                             reader = new SymbolReader(options.ConversionLog, path);
+                            if (options.AllowUnsafeSymbols)
+                                reader.SecurityCheck = p => true;
                         }
                         int moduleAddressCount = 0;
                         try
@@ -10478,6 +10485,9 @@ namespace Microsoft.Diagnostics.Tracing.Etlx
         /// If errors occur during conversion, just assume the traced ended at that point and continue. 
         /// </summary>
         public bool ContinueOnError;
+
+        public string AdditionalSymbolPath;
+        public bool AllowUnsafeSymbols;
 
         #region private
         private TextWriter m_ConversionLog;
